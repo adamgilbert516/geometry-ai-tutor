@@ -1,0 +1,95 @@
+[
+    {
+      "Topic": "Transformations",
+      "Keywords": [
+        "rigid motions",
+        "rigid transformations",
+        "dilations",
+        "rotations",
+        "reflections",
+        "translations",
+        "transform",
+        "transformations",
+        "flip",
+        "slide",
+        "turn",
+        "shift",
+        "rotate",
+        "reflect",
+        "enlargement",
+        "congruence",
+        "similar"
+      ],
+      "GeoGebraLink": "https://www.geogebra.org/m/v3jtvzbr"
+    },
+    {
+      "Topic": "Pythagorean Theorem",
+      "Keywords": [
+        "pythagorean theorem",
+        "a^2 + b^2 = c^2",
+        "legs of a triangle",
+        "hypotenuse",
+        "pythagoras",
+        "right triangle",
+        "pythagorean"
+      ],
+      "GeoGebraLink": "https://www.geogebra.org/m/hhc3rppz"
+    },
+    {
+      "Topic": "Triangle Congruence",
+      "Keywords": [
+        "congruent triangles",
+        "sss",
+        "sas",
+        "asa",
+        "aas",
+        "hl",
+        "triangle congruence",
+        "triangle proof",
+        "prove triangles congruent",
+        "congruence postulate"
+      ],
+      "GeoGebraLink": "https://www.geogebra.org/m/uwmwvcnf"
+    },
+    {
+      "Topic": "Circles",
+      "Keywords": [
+        "circle",
+        "radius",
+        "diameter",
+        "chord",
+        "arc",
+        "sector",
+        "circumference",
+        "central angle",
+        "inscribed angle",
+        "tangent",
+        "secant",
+        "segment",
+        "circle area",
+        "pi",
+        "π"
+      ],
+      "GeoGebraLink": "https://www.geogebra.org/m/kpdvv9y6"
+    },
+    {
+      "Topic": "Trigonometry",
+      "Keywords": [
+        "sine",
+        "cosine",
+        "tangent",
+        "trig",
+        "trigonometry",
+        "sin",
+        "cos",
+        "tan",
+        "unit circle",
+        "right triangle trig",
+        "opposite",
+        "adjacent",
+        "hypotenuse"
+      ],
+      "GeoGebraLink": "https://www.geogebra.org/m/upanvzyv"
+    }
+  ]
+  

@@ -1,9 +1,34 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: [],
+// tailwind.config.js
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}"
+  ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        schoolblue: '#1E3A8A', // Custom blue
+        schoolgold: '#FFD700', // Custom gold
+      },
+    },
   },
-  plugins: [],
-}
-
+  plugins: [require("daisyui")],
+  daisyui: {
+    themes: [
+      {
+        geometrytheme: {
+          primary: "#1E3A8A",   // school blue
+          secondary: "#FFD700", // school gold
+          accent: "#93C5FD",
+          neutral: "#3D4451",
+          "base-100": "#FFFFFF",
+          info: "#93C5FD",
+          success: "#34D399",
+          warning: "#FBBF24",
+          error: "#F87171",
+        },
+      },
+      "dark",
+    ],
+  },
+};
