@@ -16,8 +16,8 @@ function App() {
   const [student, setStudent] = useState(null);
   const [history, setHistory] = useState(JSON.parse(localStorage.getItem("geometry_history")) || []);
   const chatContainerRef = useRef(null);
-  const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const existing = localStorage.getItem("session_id") || uuidv4();
@@ -30,9 +30,7 @@ function App() {
   }, [history]);
 
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
+    chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: "smooth" });
   }, [history, loading]);
 
   const extractGeoGebraLink = (text) => {
@@ -53,7 +51,7 @@ function App() {
     formData.append("session_id", sessionId);
     formData.append("student_name", student.name);
     formData.append("student_email", student.email);
-    files.forEach((file) => formData.append("image", file)); // Note: backend only supports one for now
+    files.forEach((file) => formData.append("image", file)); // For now, only one will be used by backend
 
     const previews = files.map((file) => ({
       url: URL.createObjectURL(file),
@@ -112,7 +110,6 @@ function App() {
 
   const handleDrop = (e) => {
     e.preventDefault();
-    e.stopPropagation();
     dropZoneRef.current.classList.remove("ring", "ring-indigo-300");
     if (e.dataTransfer.files) handleFileUpload(e.dataTransfer.files);
   };
@@ -127,9 +124,13 @@ function App() {
     dropZoneRef.current.classList.remove("ring", "ring-indigo-300");
   };
 
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <GoogleOAuthProvider clientId={CLIENT_ID}>
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-indigo-100 p-4 flex flex-col items-center">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-indigo-100 p-4 flex flex-col items-center overflow-hidden">
         <div className="max-w-3xl w-full space-y-6 text-[1.1rem] leading-relaxed">
           <h1 className="text-4xl font-bold text-center text-indigo-700">
             📐 Geometry AI Tutor
@@ -228,20 +229,24 @@ function App() {
               </div>
 
               <div
-                className="mt-6 space-y-3"
+                className="mt-6 space-y-3 relative"
                 ref={dropZoneRef}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
               >
                 {files.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-2">
                     {files.map((file, i) => (
-                      <div
-                        key={i}
-                        className="px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-300 text-indigo-800 text-sm"
-                      >
+                      <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-300 text-indigo-800 text-sm">
                         📎 {file.name}
+                        <button
+                          onClick={() => removeFile(i)}
+                          className="text-red-500 hover:text-red-700 ml-2"
+                          title="Remove file"
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -261,6 +266,7 @@ function App() {
                     <input
                       type="file"
                       multiple
+                      ref={fileInputRef}
                       onChange={(e) => handleFileUpload(e.target.files)}
                       className="hidden"
                     />
@@ -276,6 +282,10 @@ function App() {
                   >
                     {loading ? "Thinking..." : "Ask Mr. Gilbot"}
                   </button>
+                </div>
+
+                <div className="pt-2 text-center text-sm text-blue-600 cursor-pointer hover:underline" onClick={handleResetSession}>
+                  Reset Session
                 </div>
               </div>
             </>
