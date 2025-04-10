@@ -17,7 +17,6 @@ function App() {
   const [history, setHistory] = useState(JSON.parse(localStorage.getItem("geometry_history")) || []);
   const chatContainerRef = useRef(null);
   const dropZoneRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const existing = localStorage.getItem("session_id") || uuidv4();
@@ -30,7 +29,9 @@ function App() {
   }, [history]);
 
   useEffect(() => {
-    chatContainerRef.current?.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [history, loading]);
 
   const extractGeoGebraLink = (text) => {
@@ -51,14 +52,22 @@ function App() {
     formData.append("session_id", sessionId);
     formData.append("student_name", student.name);
     formData.append("student_email", student.email);
-    files.forEach((file) => formData.append("image", file)); // For now, only one will be used by backend
+    if (files.length > 0) formData.append("image", files[0]); // MathPix only accepts one image
 
     const previews = files.map((file) => ({
       url: URL.createObjectURL(file),
       name: file.name,
     }));
 
-    setHistory((prev) => [...prev, { question, files: previews, answer: null }]);
+    setHistory((prev) => [
+      ...prev,
+      {
+        question: question || "", // ensure string even if empty
+        files: previews.length > 0 ? previews : [],
+        answer: null,
+      },
+    ]);
+    
     setQuestion("");
     setFiles([]);
     setLoading(true);
@@ -104,37 +113,38 @@ function App() {
   };
 
   const handleFileUpload = (incomingFiles) => {
-    const newFiles = Array.from(incomingFiles);
+    const newFiles = Array.from(incomingFiles).filter(
+      (file) => !files.find((f) => f.name === file.name && f.size === file.size)
+    );
     setFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const removeFile = (name) => {
+    setFiles((prev) => prev.filter((f) => f.name !== name));
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
-    dropZoneRef.current.classList.remove("ring", "ring-indigo-300");
+    e.stopPropagation();
+    dropZoneRef.current?.classList.remove("ring", "ring-indigo-300");
     if (e.dataTransfer.files) handleFileUpload(e.dataTransfer.files);
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    dropZoneRef.current.classList.add("ring", "ring-indigo-300");
+    dropZoneRef.current?.classList.add("ring", "ring-indigo-300");
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
-    dropZoneRef.current.classList.remove("ring", "ring-indigo-300");
-  };
-
-  const removeFile = (index) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+    dropZoneRef.current?.classList.remove("ring", "ring-indigo-300");
   };
 
   return (
     <GoogleOAuthProvider clientId={CLIENT_ID}>
       <div className="min-h-screen bg-gradient-to-br from-sky-50 to-indigo-100 p-4 flex flex-col items-center overflow-hidden">
         <div className="max-w-3xl w-full space-y-6 text-[1.1rem] leading-relaxed">
-          <h1 className="text-4xl font-bold text-center text-indigo-700">
-            📐 Geometry AI Tutor
-          </h1>
+          <h1 className="text-4xl font-bold text-center text-indigo-700">📐 Geometry AI Tutor</h1>
 
           {!student ? (
             <div className="flex justify-center">
@@ -168,52 +178,64 @@ function App() {
                     const wolframLink = extractWolframURL(entry.answer);
                     return (
                       <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="space-y-2">
-                        {entry.question && (
+                        {(entry.question?.trim() || entry.files?.length > 0) && (
                           <div className="flex justify-end gap-2 items-start">
                             <div className="flex flex-col items-end">
                               {entry.files?.map((file, i) => (
-                                <a
-                                  key={i}
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-block mb-1 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-300 text-indigo-800 hover:bg-indigo-100 text-sm transition"
-                                >
-                                  📎 {file.name}
-                                </a>
+                                <div key={i}>
+                                  {file.url.match(/\.(jpeg|jpg|png|gif|png)$/i) ? (
+                                    <img
+                                      src={file.url}
+                                      alt={file.name}
+                                      className="max-h-32 rounded-lg border mt-1"
+                                    />
+                                  ) : (
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-block mb-1 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-300 text-indigo-800 hover:bg-indigo-100 text-sm transition"
+                                    >
+                                      📎 {file.name}
+                                    </a>
+                                  )}
+                                </div>
                               ))}
-                              <div className="bg-indigo-100 px-4 py-2 rounded-xl text-base max-w-[75%] text-left whitespace-pre-wrap">
-                                {entry.question}
-                              </div>
+                              {entry.question?.trim() && (
+                                <div className="bg-indigo-100 px-4 py-2 rounded-xl text-base max-w-[75%] text-left whitespace-pre-wrap">
+                                  {entry.question}
+                                </div>
+                              )}
                             </div>
                             <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-white font-bold">
                               {student.name[0]}
                             </div>
                           </div>
                         )}
-
                         {entry.answer && (
                           <div className="flex gap-2 items-start">
                             <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">G</div>
                             <div className="bg-white border px-4 py-3 rounded-xl text-base max-w-[75%] text-gray-800 text-left">
                               <AIResponseBlock answer={entry.answer} />
-                              {wolframLink ? (
-                                <div className="mt-4">
-                                  <iframe
-                                    src={wolframLink}
-                                    width="100%"
-                                    height="400"
-                                    title="Wolfram Visual"
-                                    className="rounded-md border"
-                                  />
+                              {wolframLink && (
+                                <div className="mt-3">
+                                  <a
+                                    href={wolframLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 underline font-medium"
+                                  >
+                                    🔍 Here is an explanation from Wolfram Alpha
+                                  </a>
                                 </div>
-                              ) : geoLink ? (
+                              )}
+                              {geoLink && !wolframLink && (
                                 <div className="mt-2">
                                   <a href={geoLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                                     📊 Explore on GeoGebra
                                   </a>
                                 </div>
-                              ) : null}
+                              )}
                             </div>
                           </div>
                         )}
@@ -221,6 +243,7 @@ function App() {
                     );
                   })}
                 </AnimatePresence>
+
                 {loading && (
                   <div className="flex gap-2 items-center text-sm text-gray-600 mt-2">
                     <span className="animate-pulse">Thinking...</span>
@@ -229,24 +252,18 @@ function App() {
               </div>
 
               <div
-                className="mt-6 space-y-3 relative"
+                className="mt-6 space-y-3"
                 ref={dropZoneRef}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
               >
                 {files.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
+                  <div className="flex flex-wrap gap-2">
                     {files.map((file, i) => (
                       <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-300 text-indigo-800 text-sm">
                         📎 {file.name}
-                        <button
-                          onClick={() => removeFile(i)}
-                          className="text-red-500 hover:text-red-700 ml-2"
-                          title="Remove file"
-                        >
-                          ✕
-                        </button>
+                        <button onClick={() => removeFile(file.name)} className="text-red-500 hover:text-red-700">✕</button>
                       </div>
                     ))}
                   </div>
@@ -266,7 +283,6 @@ function App() {
                     <input
                       type="file"
                       multiple
-                      ref={fileInputRef}
                       onChange={(e) => handleFileUpload(e.target.files)}
                       className="hidden"
                     />
@@ -284,7 +300,7 @@ function App() {
                   </button>
                 </div>
 
-                <div className="pt-2 text-center text-sm text-blue-600 cursor-pointer hover:underline" onClick={handleResetSession}>
+                <div className="text-center text-sm mt-4 text-blue-600 cursor-pointer" onClick={handleResetSession}>
                   Reset Session
                 </div>
               </div>
