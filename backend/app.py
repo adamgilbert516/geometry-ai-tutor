@@ -5,43 +5,24 @@ import os
 import pandas as pd
 from dotenv import load_dotenv
 from difflib import get_close_matches
-import json
-import re
 import base64
 import requests
+import re
+from difflib import get_close_matches
 
 load_dotenv()
 client = OpenAI()
-wolfram_app_id = os.getenv("WOLFRAM_APP_ID")
 mathpix_app_id = os.getenv("MATHPIX_API_ID")
 mathpix_api_key = os.getenv("MATHPIX_API_KEY")
 
 curriculum_df = pd.read_csv("Curriculum Dictionary SY24-25 - Sheet1.csv")
-with open("geogebra_links_cleaned_v2.json", "r") as f:
-    geogebra_data = json.load(f)
+geogebra_df = pd.read_csv("geogebra_materials.csv")
 
 SESSION_MEMORY = {}
+TOPIC_MEMORY = {}
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:*"}})
-
-
-def find_best_lesson(question):
-    concepts = curriculum_df['Main Concepts'].dropna().tolist()
-    match = get_close_matches(question.lower(), concepts, n=1, cutoff=0.5)
-    if match:
-        row = curriculum_df[curriculum_df['Main Concepts'] == match[0]].iloc[0]
-        return row['Lesson Title']
-    return ""
-
-
-def find_geogebra_link(question):
-    question_lower = question.lower()
-    for entry in geogebra_data:
-        keywords = entry.get("Keywords", [])
-        if any(keyword.lower() in question_lower for keyword in keywords):
-            return entry.get("GeoGebraLink", "")
-    return ""
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 
 def extract_mathpix_text(image_file):
@@ -59,43 +40,10 @@ def extract_mathpix_text(image_file):
             "math_inline_delimiters": ["$", "$"]
         }
         res = requests.post("https://api.mathpix.com/v3/text", json=payload, headers=headers)
-        data = res.json()
-        return data.get("text", "").strip()
+        return res.json().get("text", "").strip()
     except Exception as e:
         print("MathPix error:", e)
         return ""
-
-
-def extract_best_wolfram_keyword(text):
-    try:
-        messages = [
-            {
-                "role": "system",
-                "content": "Extract a single math keyword or concept from the following question or statement. Return just one keyword like 'pythagorean theorem', 'volume', 'euler formula'. If nothing meaningful is found, return 'none'."
-            },
-            {"role": "user", "content": text}
-        ]
-        result = client.chat.completions.create(model="gpt-4o", messages=messages)
-        keyword = result.choices[0].message.content.strip().lower()
-        if keyword in ["", "none", "nothing", "n/a"]:
-            return ""
-        return keyword.replace(" ", "+")
-    except Exception as e:
-        print("Keyword extraction error:", e)
-        return ""
-
-
-def suggest_wolfram_link(query, image_text):
-    if image_text.strip():  # Avoid suggesting if the question came from an image
-        return ""
-    keyword = extract_best_wolfram_keyword(query)
-    if keyword:
-        return f"https://www.wolframalpha.com/input?i={keyword}"
-    return ""
-
-
-def should_suggest_wolfram(text):
-    return "wolfram" in text.lower() or "wolfram link" in text.lower()
 
 
 def sanitize_latex_markdown(text):
@@ -105,11 +53,106 @@ def sanitize_latex_markdown(text):
     text = re.sub(r'\(\s*([a-zA-Z0-9^]+)\s*\)', r'\1', text)
     text = re.sub(r'(?<!\$)(\b[a-zA-Z])\(([^)]+)\)(?!\$)', r'$\1(\2)$', text)
     text = re.sub(r'(?<!\\)([a-zA-Z])\(([^)]+)\)', r'\1\\left(\2\\right)', text)
-    block_math_matches = re.findall(r'\$\$.*?\$\$', text, re.DOTALL)
-    for block in block_math_matches:
-        if block.count('$$') != 2:
-            text = text.replace(block, '')
     return text
+
+def fuzzy_keyword_match(keyword, keyword_list):
+    if not keyword:
+        print(f"⚠️ No keyword extracted for {context}.")
+        return "", False
+    matches = get_close_matches(keyword, keyword_list, n=1, cutoff=0.6)
+    return matches[0] if matches else ""
+
+def extract_best_keyword(prompt, context, session_id, image_text=""):
+    try:
+        combined_input = f"User question: {prompt}"
+        if image_text:
+            combined_input += f"\n\nMathPix OCR from image:\n{image_text}"
+
+        messages = [
+            {
+                "role": "system",
+                "content": f"Extract a single keyword or short phrase from this input that is useful for {context}. Return only one math keyword like 'trigonometry', 'angle bisector', or 'triangle similarity'. If nothing helpful is found, return 'none'."
+            },
+            {"role": "user", "content": combined_input}
+        ]
+        result = client.chat.completions.create(model="gpt-4o", messages=messages)
+        keyword = result.choices[0].message.content.strip().lower()
+        print(f"⚠️ GPT returned invalid keyword for {context}: '{keyword}'")
+        if keyword in ["none", "n/a", ""]:
+            print(f"⚠️ GPT returned invalid keyword for {context}: '{keyword}'")
+
+            return TOPIC_MEMORY.get(session_id, "")
+        else:
+            print(f"📌 Stored keyword for [{context}]: {keyword}")
+            TOPIC_MEMORY[session_id] = keyword
+            return keyword
+    except Exception as e:
+        print(f"{context} keyword extraction error:", e)
+        return TOPIC_MEMORY.get(session_id, "")
+
+
+
+def find_best_lesson(prompt, session_id, image_text):
+    keyword = extract_best_keyword(prompt, "lesson lookup", session_id, image_text)
+    
+    if not keyword:
+        print("⚠️ No keyword extracted for lesson lookup.")
+        return "", False
+
+    all_keywords = curriculum_df['Keywords'].dropna().str.lower().tolist()
+    best_match = fuzzy_keyword_match(keyword, all_keywords)
+    print(f"🔎 Extracted lesson keyword: {keyword} → Matched: {best_match}")
+
+    try:
+        matched = curriculum_df[curriculum_df['Keywords'].fillna("").str.lower().str.contains(best_match)]
+        if not matched.empty:
+            lesson = matched.iloc[0]['Lesson Title']
+            print(f"✅ Matched lesson: {lesson}")
+            return lesson, True
+    except Exception as e:
+        print("Lesson match error:", e)
+
+    return "", False
+
+
+def find_geogebra_link(prompt, session_id, image_text):
+    keyword = extract_best_keyword(prompt, "geogebra material search", session_id, image_text)
+    all_keywords = geogebra_df['Keywords'].dropna().str.lower().tolist()
+    best_match = fuzzy_keyword_match(keyword, all_keywords)
+
+    print(f"🔍 Extracted GeoGebra keyword: {keyword} → Matched: {best_match}")
+
+    try:
+        matched = geogebra_df[geogebra_df['Keywords'].str.lower().str.contains(best_match)]
+        if not matched.empty:
+            material_id = matched.iloc[0]['MaterialID']
+            url = f"https://www.geogebra.org/m/{material_id}"
+
+            # Check that the material ID is valid
+            try:
+                r = requests.head(url, allow_redirects=True, timeout=5)
+                if r.status_code == 200:
+                    print(f"✅ Valid GeoGebra material found: {url}")
+                    return material_id, url
+                else:
+                    print(f"⚠️ Invalid GeoGebra material: {url} returned {r.status_code}")
+            except Exception as e:
+                print("GeoGebra validation error:", e)
+
+    except Exception as e:
+        print("GeoGebra match error:", e)
+
+    print("🔁 Falling back to GeoGebra search page.")
+    return "", "https://www.geogebra.org/math/geometry"
+
+
+
+def find_wolfram_link(prompt, session_id, image_text):
+    keyword = extract_best_keyword(prompt, "wolfram query lookup", session_id, image_text)
+    print(f"🌐 Extracted Wolfram keyword: {keyword}")
+    if not keyword:
+        return ""
+    return f"https://www.wolframalpha.com/input?i={keyword}"
 
 
 @app.route("/api/ask", methods=["POST"])
@@ -124,65 +167,65 @@ def ask():
     if session_id not in SESSION_MEMORY:
         SESSION_MEMORY[session_id] = []
 
-    previous_turns = SESSION_MEMORY[session_id][-4:]
-    chat_history = []
-    for pair in previous_turns:
-        chat_history.append({"role": "user", "content": pair["question"]})
-        chat_history.append({"role": "assistant", "content": pair["response"]})
+    prev_turns = SESSION_MEMORY[session_id][-4:]
+    chat_history = [{"role": "user", "content": t["question"]} if i % 2 == 0 else {"role": "assistant", "content": t["response"]["gpt"]} for i, t in enumerate(prev_turns * 2)]
 
     image_text = extract_mathpix_text(image_file) if image_file else ""
     full_question = f"{question}\n\nExtracted from screenshot:\n{image_text}" if image_text else question
 
-    lesson_ref = find_best_lesson(full_question)
-    geogebra_link = find_geogebra_link(full_question)
-    wolfram_link = suggest_wolfram_link(question, image_text) if should_suggest_wolfram(question) else ""
+    lesson_title, lesson_found = find_best_lesson(full_question, session_id, image_text)
+    material_id, geogebra_url = find_geogebra_link(full_question, session_id, image_text)
+    wolfram_link = find_wolfram_link(full_question, session_id, image_text)
 
-    lesson_line = f"\n\nSuggested resource:\n{lesson_ref}" if lesson_ref else ""
-    visual_line = ""
-    if geogebra_link:
-        visual_line += f"\n\nGeoGebraID: {geogebra_link}"
-    elif wolfram_link:
-        visual_line += f"\n\nWolframURL: {wolfram_link}"
+    show_lesson = lesson_found and len(SESSION_MEMORY[session_id]) >= 1
+    lesson_line = f'Check your notes for: {lesson_title}' if show_lesson else ''
+
 
     system_prompt = f"""
-You are a helpful geometry tutor, named Mr. Gilbot.
+You are a helpful and kind geometry tutor named Mr. Gilbot. You specialize in geometry, even though you know lots about math and science at all levels.
 
-NEVER give the student the final answer. Instead, follow this structure strictly:
-1. Always start with a guiding question to prompt thinking.
-2. If the student already asked this before, you may give a slightly stronger hint.
-3. If the question is too vague, say: "Please ask a more specific question so that I can help you better."
-4. If appropriate, recommend a specific topic like this:{lesson_line}
-5. If you want to suggest a visual, include the full GeoGebra link like this or a WolframAlpha link like this:{visual_line}
-6. If students ask for formulas, definitions, or theorems, you may prompt their thinking first, but eventually you may provide this information.
-7. If they present a problem to solve, ask them to show a screenshot of their work so far to help move them forward. Give guidance only.
+Your job is to guide students with clear, step-by-step thinking — not to give full answers.
 
-Use LaTeX for math, using $...$ for inline expressions and $$...$$ for block expressions.
+✅ Follow this order:
+1. Start with a guiding question that prompts the user to give you more information about their question. This should be a question that helps you understand the user's needs better.
+2. If a lesson title is provided, say: '{lesson_line}' — use this **exact wording and title**. Do not reword or invent a title. If no lesson title is provided, skip this step entirely.
+3. Explain the math with nudges and reasoning. Avoid giving full answers.
+4. If a visual would help, say "Let me show you an interactive activity." Do NOT describe it — the system will handle that.
 
-Write raw Markdown with LaTeX syntax — the frontend will handle rendering.
-Never solve full problems. Only give nudges to guide their thinking.
+✍️ Format rules:
+- Use LaTeX in Markdown ($a^2 + b^2 = c^2$ or $$...$$)
+- Do not make up lesson titles
+- Do not include multiple links
+- Only suggest a link if it's helpful or asked for
 """
 
     messages = [{"role": "system", "content": system_prompt}] + chat_history + [{"role": "user", "content": full_question}]
     response = client.chat.completions.create(model="gpt-4o", messages=messages)
-
     raw_text = response.choices[0].message.content.strip()
     gpt_text = sanitize_latex_markdown(raw_text)
 
-    if not geogebra_link and wolfram_link:
-    # Remove hallucinated link labels like [Text](Wolfram link) or WolframAlpha:Label(...)
-        gpt_text = re.sub(r"\[.*?\]\((https?:\/\/www\.wolframalpha\.com[^\s)]+)\)", "", gpt_text)
-        gpt_text = re.sub(r"WolframAlpha[:\-\w\s]*\((https?:\/\/www\.wolframalpha\.com[^\)]+)\)", "", gpt_text)
+    # Sanitize hallucinated Wolfram links
+    gpt_text = re.sub(r"\[.*?\]\((https?:\/\/www\.wolframalpha\.com[^\s)]+)\)", "", gpt_text)
+    gpt_text = re.sub(r"WolframAlpha[:\-\w\s]*\((https?:\/\/www\.wolframalpha\.com[^\)]+)\)", "", gpt_text)
+    gpt_text = re.sub(r"\(https?:\/\/www\.wolframalpha\.com[^\)]+\)", "", gpt_text)
 
-        # Remove standalone raw link text like just (https://...)
-        gpt_text = re.sub(r"\(https?:\/\/www\.wolframalpha\.com[^\)]+\)", "", gpt_text)
+    response_payload = {
+        "gpt": gpt_text.strip(),
+        "lesson_found": lesson_found
+    }
 
-        # Finally, add one clean, clear link to the end
-        gpt_text += f"\n\n[Here is an explanation from Wolfram Alpha]({wolfram_link})"
+    if "interactive activity" in gpt_text.lower() or "diagram" in gpt_text.lower():
+        if material_id:
+            response_payload["geogebra_id"] = material_id
+        elif geogebra_url:
+            response_payload["geogebra_fallback"] = geogebra_url
 
+    if "wolfram" in question.lower() or "wolfram" in gpt_text.lower():
+        if wolfram_link and not material_id:
+            response_payload["wolfram_link"] = wolfram_link
 
-
-    SESSION_MEMORY[session_id].append({"question": question, "response": gpt_text})
-    return jsonify({"response": {"gpt": gpt_text}})
+    SESSION_MEMORY[session_id].append({"question": question, "response": response_payload})
+    return jsonify({"response": response_payload})
 
 
 if __name__ == "__main__":

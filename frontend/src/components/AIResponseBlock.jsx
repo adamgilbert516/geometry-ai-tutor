@@ -1,54 +1,64 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import GeoGebraEmbed from "./GeoGebraEmbed";
 
-export default function AIResponseBlock({ answer }) {
-  if (!answer) return null;
+const AIResponseBlock = ({ answer }) => {
+  if (!answer || typeof answer === "string") {
+    return (
+      <div className="chat chat-start">
+        <div className="chat-bubble ai-bubble">{answer}</div>
+      </div>
+    );
+  }
 
-  // Extract and clean WolframURL
-  const wolframMatch = answer.match(/\[Here is an explanation from Wolfram Alpha\]\((https?:\/\/[^\s]+)\)/);
-  const wolframURL = wolframMatch ? wolframMatch[1] : null;
+  const { gpt, geogebra_id, geogebra_fallback, wolfram_link, lesson_found } = answer;
 
-  // Strip any raw label preceding Wolfram links
-  let cleanedText = answer
-    .replace(/WolframAlpha[-\w]*:?/, "")
-    .replace(/\[.*?\]\(https:\/\/www\.wolframalpha\.com\/input\?i=[^)]+\)/g, "")
-    // Strip any markdown link GPT might have hallucinated
-    .replace(/\[Here is an explanation from Wolfram Alpha\]\(https?:\/\/[^\s]+?\)/g, "")
-    .trim();
+  const sanitizedGpt = lesson_found === false
+    ? gpt.replace(/(please (see|refer to).*?lesson.*?)\n?/i, "")
+    : gpt;
+
+  const processedText = wolfram_link
+    ? `${sanitizedGpt}\n\n[Here is an explanation from Wolfram Alpha](${wolfram_link})`
+    : sanitizedGpt;
+
+  const hasGeoGebraPrompt = /let me show you.*diagram|interactive activity|this might be easier.*picture|explore this concept|try an interactive tool/i.test(gpt);
 
   return (
-    <div className="bg-white border px-6 py-4 rounded-xl text-base max-w-[75%] text-gray-800 text-left leading-relaxed space-y-2 overflow-x-auto">
-      <ReactMarkdown
-        children={cleanedText}
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-        components={{
-          p: ({ children }) => <p className="mb-3 text-base">{children}</p>,
-          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-          em: ({ children }) => <em className="italic">{children}</em>,
-          ul: ({ children }) => <ul className="list-disc list-inside ml-4">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal list-inside ml-4">{children}</ol>,
-          li: ({ children }) => <li className="mb-1">{children}</li>,
-          code: ({ children }) => (
-            <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>
-          ),
-          pre: ({ children }) => <pre className="bg-gray-100 p-2 rounded overflow-auto">{children}</pre>,
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 underline hover:text-blue-800 transition"
-            >
-              {children}
+    <div className="chat chat-start">
+      <div className="chat-bubble bg-blue-100 text-black dark:bg-white dark:text-black max-w-xl whitespace-pre-wrap text-left">
+        <ReactMarkdown
+          children={processedText}
+          remarkPlugins={[remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+          components={{
+            a: ({ node, ...props }) => (
+              <a
+                {...props}
+                className="text-blue-600 underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            ),
+          }}
+        />
+
+        {hasGeoGebraPrompt && geogebra_id && (
+          <GeoGebraEmbed materialId={geogebra_id} />
+        )}
+
+        {hasGeoGebraPrompt && !geogebra_id && geogebra_fallback && (
+          <div className="mt-4 text-sm text-blue-600 underline text-center">
+            <a href={geogebra_fallback} target="_blank" rel="noopener noreferrer">
+              Explore on GeoGebra ↗
             </a>
-          ),
-        }}
-      />
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default AIResponseBlock;

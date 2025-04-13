@@ -40,3 +40,53 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Bubble for the student (right aligned) */
+.chat-bubble-student {
+  background-color: #dbeafe; /* Tailwind blue-100 */
+  color: #1e3a8a;            /* Tailwind blue-900 */
+  text-align: right;
+}
+
+/* Bubble for Mr. Gilbot (AI, left aligned) */
+.chat-bubble-ai {
+  background-color: #fef3c7; /* Tailwind yellow-100 */
+  color: #92400e;            /* Tailwind yellow-900 */
+  text-align: left;
+}
+
+.chat-bubble {
+  max-width: 90%;
+  padding: 12px 16px;
+  border-radius: 1rem;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.ai-bubble {
+  background-color: white;
+  color: black;
+  border: 1px solid #ddd;
+}
+
+.user-bubble {
+  background-color: #e0e7ff;
+  color: #111827;
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 1rem;
+  max-width: 75%;
+  white-space: pre-wrap;
+}
+
+.dark .ai-bubble {
+  background-color: #1f2937;
+  color: white;
+}
+
+.dark .user-bubble {
+  background-color: #374151;
+  color: white;
+}
