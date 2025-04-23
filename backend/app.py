@@ -14,9 +14,9 @@ client = OpenAI()
 mathpix_app_id = os.getenv("MATHPIX_API_ID")
 mathpix_api_key = os.getenv("MATHPIX_API_KEY")
 
-curriculum_df = pd.read_csv("Curriculum Dictionary SY24-25 - Sheet1.csv")
-geogebra_df = pd.read_csv("geogebra_materials.csv")
-khan_df = pd.read_csv("khan_video_matches_cleaned.csv")
+curriculum_df = pd.read_csv("geometry-curriculum.csv")
+geogebra_df = pd.read_csv("geogebra-materials.csv")
+khan_df = pd.read_csv("khan-videos.csv")
 BANNED_KEYWORDS = {"wolfram", "video", "activity", "geogebra", "resource", "interactive", "lesson", "none", "none of the above", "none of these", "none of the above"}
 
 

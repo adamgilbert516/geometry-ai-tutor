@@ -1,6 +1,10 @@
 venv/
 __pycache__/
+*.pyc
 uploads/
 .env
 node_modules/
 dist/
+dev-tools/
+.DS_Store
+*.log
