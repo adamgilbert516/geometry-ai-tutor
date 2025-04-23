@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import jwt_decode from "jwt-decode";
 import { v4 as uuidv4 } from "uuid";
@@ -15,9 +15,33 @@ function App() {
   const [sessionId, setSessionId] = useState("");
   const [student, setStudent] = useState(null);
   const [history, setHistory] = useState(JSON.parse(localStorage.getItem("geometry_history")) || []);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') === 'true');
   const chatContainerRef = useRef(null);
   const dropZoneRef = useRef(null);
+
+  // Auto-scroll implementation
+  useLayoutEffect(() => {
+    const scrollToBottom = () => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    };
+
+    scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 100);
+    
+    return () => clearTimeout(timer);
+  }, [history, loading]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }, 0);
+    
+    return () => clearTimeout(timer);
+  }, [darkMode]);
 
   useEffect(() => {
     const existing = localStorage.getItem("session_id") || uuidv4();
@@ -29,11 +53,12 @@ function App() {
     localStorage.setItem("geometry_history", JSON.stringify(history));
   }, [history]);
 
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [history, loading]);
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', newMode.toString());
+    document.documentElement.classList.toggle('dark', newMode);
+  };
 
   const handleAsk = async () => {
     if (!student || (!question.trim() && files.length === 0)) return;
@@ -103,8 +128,6 @@ function App() {
     setFiles([]);
   };
 
-  const toggleDarkMode = () => setDarkMode(!darkMode);
-
   const handleFileUpload = (incomingFiles) => {
     const newFiles = Array.from(incomingFiles).filter(
       (file) => !files.find((f) => f.name === file.name && f.size === file.size)
@@ -135,13 +158,19 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={CLIENT_ID}>
-      <div className={darkMode ? "dark bg-gray-900 text-white min-h-screen" : "bg-gradient-to-br from-sky-50 to-indigo-100 min-h-screen"}>
-        <div className="p-4 flex flex-col items-center overflow-hidden">
-          <div className="max-w-3xl w-full space-y-6 text-[1.1rem] leading-relaxed">
+      <div className={`min-h-screen w-full ${darkMode ? "dark bg-black text-gray-100" : "text-gray-900"}`}>
+        <div className="p-4 flex flex-col items-center min-h-screen">
+          <div className={`max-w-3xl w-full space-y-6 p-6 rounded-2xl shadow-xl ${darkMode ? "bg-gray-900" : "bg-white"}`}>
             <div className="flex justify-between items-center">
-              <h1 className="text-4xl font-bold text-center text-indigo-700 w-full">📐 Geometry AI Tutor</h1>
+              <h1 className={`text-4xl font-bold text-center w-full ${darkMode ? "text-indigo-300" : "text-indigo-700"}`}>
+                📐 Geometry AI Tutor
+              </h1>
               <button
-                className="ml-2 p-2 rounded-full bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-700 dark:hover:bg-indigo-600 transition"
+                className={`ml-2 p-3 rounded-lg transition ${
+                  darkMode 
+                    ? "bg-gray-700 hover:bg-gray-600 text-yellow-300" 
+                    : "bg-indigo-100 hover:bg-indigo-200 text-gray-700"
+                }`}
                 onClick={toggleDarkMode}
               >
                 {darkMode ? "🌞" : "🌙"}
@@ -150,27 +179,35 @@ function App() {
 
             {!student ? (
               <div className="flex justify-center">
-                <GoogleLogin
-                  onSuccess={(res) => {
-                    const decoded = jwt_decode(res.credential);
-                    setStudent({ name: decoded.name, email: decoded.email });
-                  }}
-                  onError={() => console.log("Login Failed")}
-                />
+                <div className={`overflow-hidden rounded-lg h-[44px] w-[260px] ${darkMode ? "bg-gray-700" : "bg-gray-50"}`}>
+                  <GoogleLogin
+                    onSuccess={(res) => {
+                      const decoded = jwt_decode(res.credential);
+                      setStudent({ name: decoded.name, email: decoded.email });
+                    }}
+                    onError={() => console.log("Login Failed")}
+                    theme={darkMode ? "filled_black" : "outline"}
+                    size="large"
+                    shape="rectangular"
+                    width="260"
+                    text="continue_with"
+                    logo_alignment="left"
+                  />
+                </div>
               </div>
             ) : (
               <>
-                <div className="text-center text-gray-700 text-lg dark:text-gray-300">
+                <div className={`text-center text-lg ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                   Welcome, <strong>{student.name}</strong>
                 </div>
 
                 <div
                   ref={chatContainerRef}
-                  className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-md h-[65vh] overflow-y-auto space-y-4"
+                  className={`rounded-xl p-4 overflow-y-auto space-y-4 ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border chat-container`}
+                  style={{ maxHeight: '60vh' }}
                 >
-
                   {history.length === 0 && (
-                    <div className="text-center text-gray-600 dark:text-gray-400">
+                    <div className={`text-center ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
                       Hi! I'm <strong>Mr. Gilbot</strong>! Do you have any geometry-related questions?
                     </div>
                   )}
@@ -201,7 +238,7 @@ function App() {
                                       href={file.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-block mb-1 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-300 text-indigo-800 hover:bg-indigo-100 text-sm transition"
+                                      className={`inline-block mb-1 px-3 py-2 rounded-lg text-sm transition ${darkMode ? "bg-gray-700 border-gray-600 text-indigo-300 hover:bg-gray-600" : "bg-indigo-50 border border-indigo-300 text-indigo-800 hover:bg-indigo-100"}`}
                                     >
                                       📎 {file.name}
                                     </a>
@@ -209,7 +246,7 @@ function App() {
                                 </div>
                               ))}
                               {entry.question?.trim() && (
-                                <div className="bg-indigo-100 px-4 py-2 rounded-xl text-base whitespace-pre-wrap">
+                                <div className={`px-4 py-2 rounded-xl text-base whitespace-pre-wrap ${darkMode ? "bg-indigo-900 text-white border-gray-600" : "bg-blue-100 border border-blue-200"}`}>
                                   {entry.question}
                                 </div>
                               )}
@@ -220,14 +257,14 @@ function App() {
                           </div>
                         )}
                         {entry.answer && (
-                          <AIResponseBlock answer={entry.answer} />
+                          <AIResponseBlock answer={entry.answer} darkMode={darkMode} />
                         )}
                       </motion.div>
                     ))}
                   </AnimatePresence>
 
                   {loading && (
-                    <div className="flex gap-2 items-center text-sm text-gray-600 dark:text-gray-300 mt-2">
+                    <div className={`flex gap-2 items-center text-sm mt-2 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
                       <span className="animate-pulse">Thinking...</span>
                     </div>
                   )}
@@ -243,7 +280,7 @@ function App() {
                   {files.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {files.map((file, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-300 text-indigo-800 text-sm">
+                        <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${darkMode ? "bg-gray-700 border-gray-600 text-indigo-300" : "bg-indigo-50 border border-indigo-300 text-indigo-800"}`}>
                           📎 {file.name}
                           <button onClick={() => removeFile(file.name)} className="text-red-500 hover:text-red-700">✕</button>
                         </div>
@@ -252,14 +289,13 @@ function App() {
                   )}
 
                   <textarea
-                    className="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 resize-none text-base text-left bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                    className={`w-full p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 resize-none text-base text-left ${darkMode ? "bg-gray-700 text-white border-gray-600 placeholder-gray-400" : "bg-white border-gray-300 placeholder-gray-500"}`}
                     rows="3"
                     placeholder="Ask a geometry question..."
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     onKeyDown={handleKeyPress}
                   />
-
 
                   <div className="flex items-center justify-between">
                     <label className="cursor-pointer">
@@ -269,7 +305,7 @@ function App() {
                         onChange={(e) => handleFileUpload(e.target.files)}
                         className="hidden"
                       />
-                      <span className="inline-block px-4 py-2 bg-indigo-100 text-indigo-800 rounded-md text-sm hover:bg-indigo-200 transition">
+                      <span className={`inline-block px-4 py-2 rounded-md text-sm transition ${darkMode ? "bg-gray-700 text-indigo-300 hover:bg-gray-600" : "bg-indigo-100 text-indigo-800 hover:bg-indigo-200"}`}>
                         Choose File
                       </span>
                     </label>
@@ -283,7 +319,7 @@ function App() {
                     </button>
                   </div>
 
-                  <div className="text-center text-sm mt-4 text-blue-600 cursor-pointer" onClick={handleResetSession}>
+                  <div className={`text-center text-sm mt-4 cursor-pointer ${darkMode ? "text-indigo-400" : "text-blue-600"}`} onClick={handleResetSession}>
                     Reset Session
                   </div>
                 </div>

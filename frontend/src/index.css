@@ -1,9 +1,34 @@
+/* index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Optional global tweaks */
-body {
+/* Remove all default margins and set full viewport height */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Light mode background */
+body:not(.dark) {
   @apply bg-gradient-to-br from-sky-50 to-indigo-100 text-gray-900;
-  font-family: 'Inter', sans-serif;
+}
+
+/* Dark mode background - full black */
+body.dark {
+  @apply bg-black text-white;
+}
+
+body {
+  @apply min-h-screen;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  @apply min-h-screen w-full;
+  display: flex;
+  flex-direction: column;
 }

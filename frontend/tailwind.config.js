@@ -20,8 +20,8 @@ module.exports = {
           primary: "#1E3A8A",   // school blue
           secondary: "#FFD700", // school gold
           accent: "#93C5FD",
-          neutral: "#3D4451",
-          "base-100": "#FFFFFF",
+          neutral: "#1F2937",   // darker neutral
+          "base-100": "#111827", // dark gray for app background
           info: "#93C5FD",
           success: "#34D399",
           warning: "#FBBF24",

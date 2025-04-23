@@ -1,70 +1,36 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+
+/* Google Button Fixes */
+iframe[title="Sign in with Google"] {
+  position: relative !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+  width: 260px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  border-radius: 0.5rem !important;
+}
+/* Dark mode specific button adjustments */
+.dark iframe[title="Sign in with Google"] {
+  background-color: #374151 !important;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.chat-container {
+  scroll-behavior: smooth;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.chat-container > *:last-child {
+  overflow-anchor: auto;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Dark Mode Transition */
+.dark-transition * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-/* Bubble for the student (right aligned) */
-.chat-bubble-student {
-  background-color: #dbeafe; /* Tailwind blue-100 */
-  color: #1e3a8a;            /* Tailwind blue-900 */
-  text-align: right;
-}
-
-/* Bubble for Mr. Gilbot (AI, left aligned) */
-.chat-bubble-ai {
-  background-color: #fef3c7; /* Tailwind yellow-100 */
-  color: #92400e;            /* Tailwind yellow-900 */
-  text-align: left;
-}
-
-.chat-bubble {
-  max-width: 90%;
-  padding: 12px 16px;
-  border-radius: 1rem;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
+/* Chat Bubbles */
 .ai-bubble {
   background-color: white;
   color: black;
@@ -82,11 +48,29 @@
 }
 
 .dark .ai-bubble {
-  background-color: #1f2937;
-  color: white;
+  background-color: #374151;
+  color: #E5E7EB;
+  border-color: #4B5563;
 }
 
 .dark .user-bubble {
-  background-color: #374151;
+  background-color: #1E3A8A;
   color: white;
+}
+
+/* File Upload Styles */
+.file-upload-container {
+  transition: all 0.3s ease;
+}
+
+/* GeoGebra Link */
+.geogebra-link {
+  transition: color 0.2s ease;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 640px) {
+  .chat-container {
+    max-height: 60vh;
+  }
 }
