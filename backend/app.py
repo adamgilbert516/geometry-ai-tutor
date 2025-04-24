@@ -10,7 +10,7 @@ import requests
 import re
 
 load_dotenv()
-client = OpenAI()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 mathpix_app_id = os.getenv("MATHPIX_API_ID")
 mathpix_api_key = os.getenv("MATHPIX_API_KEY")
 
