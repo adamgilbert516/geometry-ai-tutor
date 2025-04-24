@@ -89,7 +89,8 @@ function App() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:5051/api/ask", {
+      const res = await fetch("https://geometry-ai-tutor-backend.onrender.com/api/ask", {
+
         method: "POST",
         body: formData,
       });
