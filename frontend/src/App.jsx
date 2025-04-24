@@ -89,11 +89,13 @@ function App() {
     setLoading(true);
 
     try {
-      const res = await fetch("https://geometry-ai-tutor-backend.onrender.com/api/ask", {
+      const API_URL = import.meta.env.VITE_API_URL || "https://geometry-ai-tutor-backend.onrender.com/api/ask";
 
+      const res = await fetch(API_URL, {
         method: "POST",
         body: formData,
       });
+  
       const data = await res.json();
       setHistory((prev) =>
         prev.map((entry, i) =>
