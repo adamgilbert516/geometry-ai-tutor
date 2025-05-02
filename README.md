@@ -1,117 +1,107 @@
+# Geometry AI Tutor
 
-# 📐 Geometry AI Tutor
+**Live site:** [https://geometry-ai-tutor.vercel.app/](https://geometry-ai-tutor.vercel.app/)
 
-**Geometry AI Tutor** is an interactive, AI-powered web application designed to support students in learning geometry through guided hints, interactive visuals, and curated resources — **without giving away full answers**. Built with React, TailwindCSS, Flask, and integrated with advanced AI tools, this tutor mimics the behavior of a thoughtful human teacher.
+## Overview
 
----
+The Geometry AI Tutor is a web-based educational assistant designed to help students engage more deeply with geometry concepts through guided questioning, interactive visuals, and context-aware feedback. Unlike traditional AI solutions that provide direct answers, this tool encourages step-by-step reasoning and supports learning by prompting students with strategic hints and interactive diagrams.
 
-## 🚀 Features
+Built using a React + Vite frontend and a Flask backend, the app integrates OpenAI for natural language understanding, GeoGebra for visual interactivity, MathPix OCR for image-based question parsing, and Khan Academy for video enrichment. The application is optimized for both student usability and educator deployment, with support for session memory, image uploads, curriculum-aligned lesson suggestions, and dark mode.
 
-- 💡 **AI-Powered Guidance**: Uses GPT-4o to provide step-by-step hints and probing questions.
-- 📊 **Interactive GeoGebra Visuals**: Embeds dynamic geometry diagrams when helpful.
-- 🎥 **Khan Academy Video Integration**: Suggests relevant videos for deeper understanding.
-- ➕ **Wolfram Alpha Links**: Offers clean, embedded explanations for advanced concepts.
-- 🖼️ **Screenshot Support**: Upload math problems via image; MathPix OCR extracts and interprets text.
-- 🌗 **Dark Mode Toggle**: Smooth, user-friendly UI with light/dark themes.
-- 🗂️ **Session Memory**: Tracks conversation history for context-aware tutoring.
-- 🔒 **Google OAuth Login**: Personalized experience with secure Google sign-in.
-- 📂 **Drag-and-Drop File Uploads**: Chat interface supports intuitive file sharing.
+## Features
 
----
+- **Natural Language Interaction**: Students can ask questions in plain English. The AI (nicknamed *Mr. Gilbot*) replies with hints and questions to promote deeper thinking.
+- **Session Awareness**: Remembers recent interactions to improve the relevance of follow-up prompts and lessons.
+- **Image OCR**: Upload screenshots of problems. MathPix extracts the math content, which is used for generating a response.
+- **GeoGebra Embeds**: If the AI determines a visual is helpful, it includes an interactive GeoGebra diagram.
+- **Khan Academy Video Suggestions**: Relevant instructional videos are embedded or linked when appropriate.
+- **Curriculum Integration**: Suggests lessons aligned to a curriculum CSV, allowing customization for different schools or districts.
+- **Dark Mode**: Built-in toggleable theme for user comfort.
+- **Drag & Drop File Uploads**: Upload files directly into the chat interface.
 
-## 🛠️ Tech Stack
+## Technologies Used
 
-### **Frontend** 
-- React + Vite
-- TailwindCSS + DaisyUI
-- Framer Motion (animations)
-- Google OAuth
-- React-Markdown + KaTeX for LaTeX rendering
+### Frontend
+- **React 19** with **Vite**
+- **TailwindCSS 4** + **DaisyUI** for styling
+- **Framer Motion** for chat animation
+- **react-markdown** with **remark-math** and **rehype-katex** for LaTeX rendering
+- **Google OAuth** for student login
+- **GeoGebra deployggb.js** for applet integration
 
-### **Backend**
-- Flask (Python)
-- OpenAI GPT-4o API
-- MathPix OCR API
-- CSV-based resource lookups (Curriculum, GeoGebra, Khan Academy)
-- CORS-enabled API for frontend integration
+### Backend
+- **Python 3.10+**
+- **Flask** API with CORS support
+- **OpenAI API (GPT-4o)** for natural language responses
+- **MathPix API** for OCR
+- **Pandas** and **fuzzy matching** for curriculum and resource lookups
 
----
+## Folder Structure
 
-## 🌐 Live Demo
-> _Coming Soon_ — Deployed on **Vercel** (Frontend) and **Render** (Backend).
+- `/frontend`: React + Vite application
+  - `App.jsx`: main logic for chat UI, authentication, and state
+  - `AIResponseBlock.jsx`: handles AI message rendering with markdown, KaTeX, and embedded media
+  - `GeoGebraEmbed.jsx`: embeds interactive applets based on `material_id`
+  - `main.jsx`: entry point
+  - `index.css`, `App.css`: custom styling
+- `/backend`: Flask app
+  - `app.py`: handles question routing, OCR, keyword extraction, and resource lookup
+  - `geogebra_materials.csv`, `khan_video_matches.csv`, and `Curriculum Dictionary.csv`: data sources
+  - `geogebra_topics.py`: keyword index for GeoGebra matching
 
----
+## Setup Instructions
 
-## 📸 Screenshots
-*(Add screenshots or GIFs here once deployed!)*
+### Local Development
 
----
+#### Prerequisites
+- Node.js (v18+)
+- Python 3.10+
+- `pip`, `virtualenv`, or `conda`
+- `npm` or `yarn`
 
-## ⚙️ Setup & Installation
+#### Frontend
 
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/geometry-ai-tutor.git
-cd geometry-ai-tutor
-```
-
-### 2. Backend Setup (`/backend`)
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-Create a `.env` file with:
-```
-OPENAI_API_KEY=your_openai_key
-MATHPIX_API_KEY=your_mathpix_key
-MATHPIX_API_ID=your_mathpix_app_id
-```
-Run the Flask server:
-```bash
-python app.py
-```
-
-### 3. Frontend Setup (`/frontend`)
-```bash
-cd ../frontend
+cd frontend
 npm install
 npm run dev
 ```
 
-Visit: `http://localhost:5173`
+#### Backend
 
----
-
-## 📂 Project Structure
-```
-geometry-ai-tutor/
-├── backend/          # Flask API + CSV resources
-├── frontend/         # React + Vite frontend
-├── dev-tools/        # Helper scripts (scrapers, CSV generators)
-└── README.md
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+python app.py
 ```
 
----
+Set your `.env` file in `/backend` with the following:
 
-## 🚧 Roadmap
-- [ ] Deploy to Vercel & Render
-- [ ] Add multilingual support
-- [ ] Improve AI hint sequencing
-- [ ] Expand resource database
-- [ ] Implement student progress tracking
+```
+OPENAI_API_KEY=...
+MATHPIX_API_KEY=...
+MATHPIX_API_ID=...
+```
 
----
+Ensure CORS is properly set to allow requests between `localhost:3000` and your backend (default Flask port is `5051`).
 
-## 🤝 Contributing
-This is a personal project, but contributions or suggestions are welcome! Feel free to open issues or pull requests.
+### Production
 
----
+The frontend is deployed to Vercel:
+📍 [https://geometry-ai-tutor.vercel.app](https://geometry-ai-tutor.vercel.app)
 
-## 🙌 Acknowledgements
-- [OpenAI](https://openai.com/)
-- [GeoGebra](https://www.geogebra.org/)
-- [Khan Academy](https://www.khanacademy.org/)
-- [MathPix](https://mathpix.com/)
-- [Wolfram Alpha](https://www.wolframalpha.com/)
+The backend can be deployed on Render or any Flask-compatible cloud host. The frontend expects the API at `/api/ask`.
+
+## Future Plans
+
+- Support for multilingual OCR and translation
+- Curriculum support for Algebra, Precalculus, and Calculus
+- Admin panel for educators to view student progress
+- Support for multiple file uploads and expanded image previews
+- Enhanced keyword extraction using GPT for broader content alignment
+
+## Contributing
+
+If you're interested in extending the project (e.g., adding new curriculum datasets or improving the OCR flow), feel free to fork the repo and submit a pull request. Feature requests and issue reports are welcome.
