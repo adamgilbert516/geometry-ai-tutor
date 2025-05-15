@@ -165,8 +165,13 @@ function App() {
         <div className="p-4 flex flex-col items-center min-h-screen">
           <div className={`max-w-3xl w-full space-y-6 p-6 rounded-2xl shadow-xl ${darkMode ? "bg-gray-900" : "bg-white"}`}>
             <div className="flex justify-between items-center">
+              <img
+                src="/geo.png"
+                alt="Geometry AI Logo"
+                className="h-8 sm:h-10 w-auto"
+              />
               <h1 className={`text-4xl font-bold text-center w-full ${darkMode ? "text-indigo-300" : "text-indigo-700"}`}>
-                📐 Geometry AI Tutor
+                 Geometry AI Tutor
               </h1>
               <button
                 className={`ml-2 p-3 rounded-lg transition ${
