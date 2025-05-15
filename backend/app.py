@@ -14,9 +14,9 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 mathpix_app_id = os.getenv("MATHPIX_API_ID")
 mathpix_api_key = os.getenv("MATHPIX_API_KEY")
 
-curriculum_df = pd.read_csv("geometry-curriculum.csv")
-geogebra_df = pd.read_csv("geogebra-materials.csv")
-khan_df = pd.read_csv("khan-videos.csv")
+curriculum_df = pd.read_csv("backend/geometry-curriculum.csv")
+geogebra_df = pd.read_csv("backend/geogebra-materials.csv")
+khan_df = pd.read_csv("backend/khan-videos.csv")
 BANNED_KEYWORDS = {"wolfram", "video", "activity", "geogebra", "resource", "interactive", "lesson", "none", "none of the above", "none of these", "none of the above"}
 
 
@@ -365,8 +365,6 @@ def get_alternates():
     print(f"   ➤ GeoGebra alternates: {len(response_payload['geogebra_alternates'])}")
 
     return jsonify(response_payload)
-
-
 
 
 if __name__ == "__main__":
